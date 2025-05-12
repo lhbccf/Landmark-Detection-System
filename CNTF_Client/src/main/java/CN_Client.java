@@ -36,9 +36,9 @@ public class CN_Client {
             noBlockStub = cn2425tfGrpc.newStub(channel);
 
             // Obtain current user
-            Scanner scanner = new Scanner(System.in);
-            System.out.print("Enter your username: ");
-            username = scanner.nextLine();
+            //Scanner scanner = new Scanner(System.in);
+            //System.out.print("Enter your username: ");
+            //username = scanner.nextLine();
 
             // Call service operations for example ping server
 
