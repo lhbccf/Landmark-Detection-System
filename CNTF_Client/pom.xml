@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>cn.isel</groupId>
-    <artifactId>CN2425_T4_G06</artifactId>
+    <groupId>isel.grcp</groupId>
+    <artifactId>cn2425tf_client</artifactId>
     <version>1.0</version>
 
     <!--  <packaging>jar</packaging> -->
@@ -17,6 +17,16 @@
      </properties>
 
      <dependencies>
+         <dependency>
+             <groupId>isel.grpc</groupId>
+             <artifactId>cn2425tf</artifactId>
+             <version>1.0</version>
+         </dependency>
+         <dependency>
+             <groupId>com.google.cloud</groupId>
+             <artifactId>google-cloud-storage</artifactId>
+             <version>2.50.0</version>
+         </dependency>
          <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-pubsub</artifactId>
