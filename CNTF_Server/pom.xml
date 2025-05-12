@@ -4,42 +4,46 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>cn.isel</groupId>
-    <artifactId>CN2425_T4_G06</artifactId>
+    <groupId>isel.grpc</groupId>
+    <artifactId>cn2425tf_server</artifactId>
     <version>1.0</version>
 
-    <!--  <packaging>jar</packaging> -->
-     <properties>
-         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-         <java.version>11</java.version>
-         <maven.compiler.source>${java.version}</maven.compiler.source>
-         <maven.compiler.target>${java.version}</maven.compiler.target>
-     </properties>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>21</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+    </properties>
 
-     <dependencies>
-         <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-pubsub</artifactId>
-            <version>1.129.1</version>
+    <dependencies>
+        <dependency>
+            <groupId>isel.grpc</groupId>
+            <artifactId>cn2425tf</artifactId>
+            <version>1.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-storage</artifactId>
+            <version>2.50.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>
         <plugins>
-
-           <plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>3.7.1</version>
+                <version>3.6.0</version>
                 <configuration>
                     <descriptors>
                         <descriptor>assembly.xml</descriptor>
                     </descriptors>
-					<archive>
-                          <manifest>
-                              <mainClass>googlepubsub.PubSubClient</mainClass>
-                          </manifest>
-                     </archive>
+                    <archive>
+                        <manifest>
+                            <mainClass>CNTF_Server.ForumServer</mainClass>
+                        </manifest>
+                    </archive>
                 </configuration>
                 <executions>
                     <execution>
@@ -51,10 +55,8 @@
                     </execution>
                 </executions>
             </plugin>
-			
         </plugins>
     </build>
-
 
 
 </project>
