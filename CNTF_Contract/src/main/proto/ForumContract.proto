@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+option java_multiple_files = true;
+option java_package = "servicestubs";
+
+package cn2425; // package do proto
+
+service CN2425 {
+    rpc isAlive(ProtoVoid) returns (TextMessage);
+    rpc uploadImage(stream ImageFile) returns (google.protobuf.Empty);
+    /*rpc topicSubscribe(SubscribeUnSubscribe) returns (stream ForumMessage);
+    rpc topicUnSubscribe(SubscribeUnSubscribe) returns (google.protobuf.Empty);
+    rpc getAllTopics(google.protobuf.Empty) returns (ExistingTopics);
+    rpc publishMessage(ForumMessage) returns (google.protobuf.Empty);*/
+}
+message ProtoVoid { }
+
+message TextMessage {string txt = 1;}
+
+message ImageFile{
+    bytes image = 1;
+}
+message SubscribeUnSubscribe {
+    string usrName = 1;
+    string topicName = 2;
+}
+message ExistingTopics {
+    repeated string topicName = 1;
+}
+message ForumMessage {
+    string fromUser = 1;
+    string topicName = 2;
+    string txtMsg = 3;
+}
