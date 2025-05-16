@@ -67,11 +67,10 @@ public class CN_Client {
     static void uploadImage() {
         Scanner scanner = new Scanner(System.in);
 
-        System.out.print("Enter image name to upload: ");
-        String imageName = scanner.nextLine().trim();
 
         System.out.print("Enter image path to upload: ");
         String imagePath = scanner.nextLine().trim();
+        String imageName = imagePath.toString();
 
         if(!imagePath.contains("./")){
             imagePath = "./" + imagePath;
