@@ -6,17 +6,17 @@ option java_package = "servicestubs";
 package cn2425tf; // package do proto
 
 service cn2425tf {
-    rpc uploadImage(ImageFile) returns (ReturnFile);
+    rpc uploadImage(stream ImageBlock) returns (ReturnFile);
 }
 message ProtoVoid { }
 
 message TextMessage {string txt = 1;}
 
-message ImageFile{
-    string imageType = 1;
-    string imageName = 2;
-    bytes imageData = 3;
+message ImageBlock{
+    string imageName = 1;
+    string imageType = 2;
+    bytes dataBlock = 3;
 }
 message ReturnFile{
-    string fileId = 1;
+    string requestId = 1;
 }
