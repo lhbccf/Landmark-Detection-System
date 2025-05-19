@@ -8,7 +8,7 @@ public class ObserverUploadImage implements StreamObserver<ReturnFile> {
 
     @Override
     public void onNext(ReturnFile value) {
-        System.out.println("\nBucket/Blob IDs: " + value.getFileId());
+        System.out.println("\nBucket/Blob IDs: " + value.getRequestId());
     }
 
     @Override
