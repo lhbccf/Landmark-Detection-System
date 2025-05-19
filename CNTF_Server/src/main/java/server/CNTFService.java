@@ -19,13 +19,17 @@ public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
         StorageOptions storageOptions = StorageOptions.getDefaultInstance();
         Storage storage = storageOptions.getService();
         ByteArrayOutputStream bytesReceived = new ByteArrayOutputStream();
-        final String[] imageName = {""};
         final String[] imageType = {""};
+        final String[] imageName = {""};
+        final boolean[] isFirst = {false};
         return new StreamObserver<ImageBlock>() {
             @Override
             public void onNext(ImageBlock value) {
-                imageName[0] = value.getImageName();
-                imageType[0] = value.getImageType();
+                if(!isFirst[0]) {
+                    imageType[0] = value.getImageType();
+                    imageName[0] = value.getImageName();
+                    isFirst[0] = true;
+                }
                 bytesReceived.writeBytes(value.getDataBlock().toByteArray());
             }
 
@@ -60,6 +64,8 @@ public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
                 } else {
                     System.out.println("Blob name already exists");
                 }
+
+
             }
         };
     }

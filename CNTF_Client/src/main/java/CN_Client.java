@@ -82,12 +82,15 @@ public class CN_Client {
 
         Path uploadPath = Paths.get(imagePath);
 
-        //File big
         StreamObserver<ImageBlock> streamBlocks = noBlockStub.uploadImage(
                 new StreamObserver<ReturnFile>() {
                     @Override
                     public void onNext(ReturnFile value) {
-                        System.out.println("Block sent");
+                        String[] requestStrings = value.getRequestId().split("=");
+                        String bucketId = requestStrings[1].split(",")[0];
+                        String blobId = requestStrings[2].split(",")[0];
+                        System.out.println("\nBucket Id: " + bucketId);
+                        System.out.println("Blob Id: " + blobId + "\n");
                     }
                     @Override
                     public void onError(Throwable t) {
