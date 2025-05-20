@@ -19,8 +19,7 @@ public class CN_Client {
     private static ManagedChannel channel;
     private static cn2425tfGrpc.cn2425tfBlockingStub blockingStub;
     private static cn2425tfGrpc.cn2425tfStub noBlockStub;
-    private static Storage storage;
-    private static String username = "empty-user";
+
 
     public static void main(String[] args) {
         try {
@@ -36,11 +35,6 @@ public class CN_Client {
                     .build();
             blockingStub = cn2425tfGrpc.newBlockingStub(channel);
             noBlockStub = cn2425tfGrpc.newStub(channel);
-
-            // Obtain current user
-            //Scanner scanner = new Scanner(System.in);
-            //System.out.print("Enter your username: ");
-            //username = scanner.nextLine();
 
             // Call service operations for example ping server
 
@@ -86,11 +80,7 @@ public class CN_Client {
                 new StreamObserver<ReturnFile>() {
                     @Override
                     public void onNext(ReturnFile value) {
-                        String[] requestStrings = value.getRequestId().split("=");
-                        String bucketId = requestStrings[1].split(",")[0];
-                        String blobId = requestStrings[2].split(",")[0];
-                        System.out.println("\nBucket Id: " + bucketId);
-                        System.out.println("Blob Id: " + blobId + "\n");
+                        System.out.println("\nRequest Id: " + value.getRequestId());
                     }
                     @Override
                     public void onError(Throwable t) {
