@@ -1,22 +1,23 @@
 package trabfinal;
 
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.vision.v1.*;
 import com.google.type.LatLng;
 
-import java.io.BufferedInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
-
-
+import com.google.cloud.firestore.*;
+import com.google.api.core.ApiFuture;
 
 public class LandmarkDetector {
+    static Firestore db;
+    static String currentCollection;
     final static int ZOOM = 15; // Streets
     final static String SIZE = "600x300";
     // Considera-se que os nomes de imagens correspondem aos nomes de BLOB
@@ -36,32 +37,58 @@ public class LandmarkDetector {
     // A variável de ambiente GOOGLE_APPLICATION_CREDENTIALS
     // deve ter conta de serviço com as roles: Storage Admin + VisionAI Admin
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         if (args.length < 1) {
             System.out.println("API Key missing");
             System.out.println("Usage: java -jar LandmarkDetector.jar <API_KEY>");
             System.exit(1);
         }
+
+        init("cn2425-t4-g06-8d582a570f0f.json","cn2425-t4-g06","landmarks-info");
+
         detectAllLandmarksGcs(args[0]);
+    }
+
+    public static void init(String pathFileKeyJson, String currentDatabase, String collectionName) throws Exception {
+        GoogleCredentials credentials = null;
+        if (pathFileKeyJson != null) {
+            InputStream serviceAccount = new FileInputStream(pathFileKeyJson);
+            credentials = GoogleCredentials.fromStream(serviceAccount);
+        } else {
+            // use GOOGLE_APPLICATION_CREDENTIALS environment variable
+            credentials = GoogleCredentials.getApplicationDefault();
+        }
+        FirestoreOptions options = FirestoreOptions
+                //.newBuilder().setCredentials(credentials).build();
+                .newBuilder().setCredentials(credentials).setDatabaseId(currentDatabase).build();
+        db = options.getService();
+        currentCollection = collectionName;
     }
 
     public static void detectAllLandmarksGcs(String apiKey) throws IOException {
         for (String name : images) {
             String blobGsPath = "gs://"+BUCKET_NAME+"/" + name;
-            detectLandmarksGcs(blobGsPath, apiKey);
+            detectLandmarksGcs(blobGsPath, apiKey, "");
         }
     }
 
+    public static void createNewDocFirestore(LandmarksInfo info, String requestId) throws Exception {
+        CollectionReference colRef = db.collection(currentCollection);
+        DocumentReference docRef = colRef.document(requestId);
+        ApiFuture<WriteResult> resultFut = docRef.set(info);
+        WriteResult result = resultFut.get();
+        System.out.println("Update time : " + result.getUpdateTime());
+    }
+
     // Detects landmarks in the specified remote image on Google Cloud Storage.
-    public static void detectLandmarksGcs(String blobGsPath, String apiKey) throws IOException {
+    public static void detectLandmarksGcs(String blobGsPath, String apiKey, String requestId) throws IOException {
         System.out.println("Detecting landmarks for: " + blobGsPath);
         List<AnnotateImageRequest> requests = new ArrayList<>();
 
         ImageSource imgSource = ImageSource.newBuilder().setGcsImageUri(blobGsPath).build();
         Image img = Image.newBuilder().setSource(imgSource).build();
         Feature feat = Feature.newBuilder().setType(Feature.Type.LANDMARK_DETECTION).build();
-        AnnotateImageRequest request =
-                AnnotateImageRequest.newBuilder().addFeatures(feat).setImage(img).build();
+        AnnotateImageRequest request = AnnotateImageRequest.newBuilder().addFeatures(feat).setImage(img).build();
         requests.add(request);
 
         // Initialize client that will be used to send requests. This client only needs to be created
@@ -82,10 +109,25 @@ public class LandmarkDetector {
                 boolean first = true; // Only get a map for the first annotation
                 for (EntityAnnotation annotation : res.getLandmarkAnnotationsList()) {
                     LocationInfo info = annotation.getLocationsList().listIterator().next();
+
+                    LandmarksInfo landmarkInfo = new LandmarksInfo();
+                    landmarkInfo.description = annotation.getDescription();
+                    landmarkInfo.score = annotation.getScore();
+                    landmarkInfo.latitude = info.getLatLng().getLatitude();
+                    landmarkInfo.longitude = info.getLatLng().getLongitude();
+
+                    try {
+                        createNewDocFirestore(landmarkInfo, requestId);
+                    } catch (Exception e) {
+                        System.err.println("Error saving to Firestore: " + e.getMessage());
+
+                    }
+
                     System.out.format("Landmark: %s(%f)%n %s%n",
                             annotation.getDescription(),
                             annotation.getScore(),
                             info.getLatLng());
+
                     if (first) {
                         getStaticMapSaveImage(info.getLatLng(), apiKey);
                         first = false;
