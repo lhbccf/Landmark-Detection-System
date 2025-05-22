@@ -19,8 +19,7 @@ public class CN_Client {
     private static ManagedChannel channel;
     private static cn2425tfGrpc.cn2425tfBlockingStub blockingStub;
     private static cn2425tfGrpc.cn2425tfStub noBlockStub;
-    private static Storage storage;
-    private static String username = "empty-user";
+
 
     public static void main(String[] args) {
         try {
@@ -37,11 +36,6 @@ public class CN_Client {
             blockingStub = cn2425tfGrpc.newBlockingStub(channel);
             noBlockStub = cn2425tfGrpc.newStub(channel);
 
-            // Obtain current user
-            //Scanner scanner = new Scanner(System.in);
-            //System.out.print("Enter your username: ");
-            //username = scanner.nextLine();
-
             // Call service operations for example ping server
 
             boolean end = false;
@@ -51,6 +45,9 @@ public class CN_Client {
                     switch (option) {
                         case 1:
                             uploadImage();
+                            break;
+                        case 2:
+                            obtainImageInformation();
                             break;
                         case 99:  System.exit(0);
                     }
@@ -69,7 +66,6 @@ public class CN_Client {
     static void uploadImage() {
         Scanner scanner = new Scanner(System.in);
 
-
         System.out.print("Enter image path to upload: ");
         String imagePath = scanner.nextLine().trim();
         String imageName = imagePath;
@@ -83,14 +79,10 @@ public class CN_Client {
         Path uploadPath = Paths.get(imagePath);
 
         StreamObserver<ImageBlock> streamBlocks = noBlockStub.uploadImage(
-                new StreamObserver<ReturnFile>() {
+                new StreamObserver<RequestInformation>() {
                     @Override
-                    public void onNext(ReturnFile value) {
-                        String[] requestStrings = value.getRequestId().split("=");
-                        String bucketId = requestStrings[1].split(",")[0];
-                        String blobId = requestStrings[2].split(",")[0];
-                        System.out.println("\nBucket Id: " + bucketId);
-                        System.out.println("Blob Id: " + blobId + "\n");
+                    public void onNext(RequestInformation value) {
+                        System.out.println("\nRequest Id: " + value.getRequestId());
                     }
                     @Override
                     public void onError(Throwable t) {
@@ -124,6 +116,28 @@ public class CN_Client {
 
     }
 
+    static void obtainImageInformation(){
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Enter request id: ");
+        String requestId = scanner.nextLine().trim();
+
+        try {
+            int documentId = Integer.parseInt(requestId);
+            ImageInformation imageInformation = blockingStub.obtainImageInformation(
+                    RequestInformation.newBuilder()
+                            .setRequestId(documentId)
+                            .build()
+            );
+
+            System.out.println("\n" + imageInformation.toString() + "\n");
+
+        } catch (Exception e){
+
+            System.out.println("Id not found/incorrect");
+        }
+    }
+
     private static int Menu() {
         int op;
         Scanner scan = new Scanner(System.in);
@@ -131,11 +145,12 @@ public class CN_Client {
             System.out.println();
             System.out.println("    MENU");
             System.out.println(" 1 - Upload Image");
+            System.out.println(" 2 - Obtain image information");
             System.out.println("99 - Exit");
             System.out.println();
             System.out.println("Choose an Option?");
             op = scan.nextInt();
-        } while (!((op >= 1 && op <= 1) || op == 99));
+        } while (!((op >= 1 && op <= 2) || op == 99));
         return op;
     }
 

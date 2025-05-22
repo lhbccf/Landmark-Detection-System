@@ -23,14 +23,7 @@ public class LandmarkDetector {
     // existentes num bucket de nome BUCKET_NAME no Storage do Projeto
     final static String BUCKET_NAME="cn2425tf_g06";
     static String[] images = {
-            "TorreBelem.jpg", "CristoRei-Almada.jpg",
-            "TajMahal.jpg",
-            "Machu_Picchu_Peru.jpg",
-            "Eiffel-tower.jpg",
-            "Petra.jpg",
-            "Sidney_Opera.jpg",
-            "TorreBelem-v2.jpg",
-            "torre-pizza-3.jpg"
+            "CristoRei-Almada.jpg",
     };
 
     // A variável de ambiente GOOGLE_APPLICATION_CREDENTIALS

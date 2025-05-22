@@ -26,7 +26,16 @@
             <artifactId>google-cloud-storage</artifactId>
             <version>2.50.0</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-pubsub</artifactId>
+            <version>1.129.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-firestore</artifactId>
+            <version>3.30.12</version>
+        </dependency>
     </dependencies>
 
     <build>
