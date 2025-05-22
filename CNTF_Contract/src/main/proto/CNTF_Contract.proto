@@ -6,8 +6,8 @@ option java_package = "servicestubs";
 package cn2425tf; // package do proto
 
 service cn2425tf {
-    rpc uploadImage(stream ImageBlock) returns (ReturnFile);
-    rpc obtainImageInformation(ProtoVoid) returns (ImageInformation);
+    rpc uploadImage(stream ImageBlock) returns (RequestInformation);
+    rpc obtainImageInformation(RequestInformation) returns (ImageInformation);
     rpc retrieveImageMapLocation(ImageInformation) returns (MapImage);
 }
 message ProtoVoid { }
@@ -19,14 +19,15 @@ message ImageBlock{
     string imageType = 2;
     bytes dataBlock = 3;
 }
-message ReturnFile{
-    int64 requestId = 1;
+message RequestInformation{
+    int32 requestId = 1;
 }
 
 message ImageInformation{
-    int32 latitude = 1;
-    int32 longitude = 2;
-    int32 imageIdentityValue = 3;
+    string description = 1;
+    double latitude = 2;
+    double longitude = 3;
+    double score = 4;
 }
 message MapImage{
     string mapImageLink = 1;

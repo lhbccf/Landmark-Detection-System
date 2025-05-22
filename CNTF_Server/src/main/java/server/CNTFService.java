@@ -1,35 +1,52 @@
 package server;
 
 import com.google.api.core.ApiFuture;
-import com.google.cloud.ByteArray;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.firestore.*;
 import com.google.cloud.pubsub.v1.Publisher;
-import com.google.cloud.pubsub.v1.SubscriptionAdminClient;
 import com.google.cloud.storage.*;
+import com.google.cloud.storage.Blob;
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
-import com.google.pubsub.v1.PushConfig;
-import com.google.pubsub.v1.SubscriptionName;
 import com.google.pubsub.v1.TopicName;
 import io.grpc.stub.StreamObserver;
+import model.Location;
 import servicestubs.*;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import java.io.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
     static String PROJECT_ID = "cn2425-t4-g06";
     static String TOPIC_NAME = "cn2425tf_t4_g6_topic";
     static String SUBSCRIPTION_NAME = "cn2425tf_t4_g6_topic-sub";
+    static Firestore db;
+    static String currentDatabase = "cn2425-t4-g06";
+    static String currentCollection = "landmarks-info";
+    ConcurrentHashMap<Integer, Location> requestMap = new ConcurrentHashMap<>();
 
-    ConcurrentHashMap<Integer, StreamObserver<ReturnFile>> requestMap = new ConcurrentHashMap<>();
-
-    public CNTFService(int svcPort) {
+    public CNTFService(int svcPort) throws IOException {
+        init(null, currentDatabase, currentCollection);
         System.out.println("Service is available on port:" + svcPort);
     }
 
+    public static void init(String pathFileKeyJson, String currentDatabase, String collectionName) throws IOException {
+        GoogleCredentials credentials = null;
+        if (pathFileKeyJson != null) {
+            InputStream serviceAccount = new FileInputStream(pathFileKeyJson);
+            credentials = GoogleCredentials.fromStream(serviceAccount);
+        } else {
+            // use GOOGLE_APPLICATION_CREDENTIALS environment variable
+            credentials = GoogleCredentials.getApplicationDefault();
+        }
+        FirestoreOptions options = FirestoreOptions
+                .newBuilder().setCredentials(credentials).setDatabaseId(currentDatabase).build();
+        db = options.getService();
+        currentCollection = collectionName;
+    }
+
     @Override
-    public StreamObserver<ImageBlock> uploadImage(StreamObserver<ReturnFile> responseObserver){
+    public StreamObserver<ImageBlock> uploadImage(StreamObserver<RequestInformation> responseObserver){
         StorageOptions storageOptions = StorageOptions.getDefaultInstance();
         Storage storage = storageOptions.getService();
         ByteArrayOutputStream bytesReceived = new ByteArrayOutputStream();
@@ -68,11 +85,10 @@ public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
                         blob = storage.create(blobInfo, bytesReceived.toByteArray());
                         blobHashCode = blob.asBlobInfo().getBlobId().toString().hashCode();
 
-                        ReturnFile response = ReturnFile.newBuilder()
+                        RequestInformation response = RequestInformation.newBuilder()
                                 .setRequestId(blobHashCode)
                                 .build();
 
-                        requestMap.putIfAbsent(blobHashCode, responseObserver);
                         responseObserver.onNext(response);
                         responseObserver.onCompleted();
 
@@ -105,6 +121,34 @@ public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
 
             }
         };
+    }
+
+    @Override
+    public void obtainImageInformation(RequestInformation requestId, StreamObserver<ImageInformation> responseObserver) {
+        Location location = null;
+        try {
+            DocumentReference docRef = db.collection(currentCollection).document(String.valueOf(requestId.getRequestId()));
+            ApiFuture<DocumentSnapshot> future = docRef.get();
+            DocumentSnapshot document = future.get();
+            if (document.exists()) {
+                System.out.println(document.getData().toString());
+                location = document.toObject(Location.class);
+                requestMap.put(requestId.getRequestId(), location);
+                responseObserver.onNext(ImageInformation.newBuilder()
+                        .setDescription(document.get("description").toString())
+                        .setLatitude(Double.parseDouble(document.get("latitude").toString()))
+                        .setLongitude(Double.parseDouble(document.get("latitude").toString()))
+                        .setScore(Double.parseDouble(document.get("score").toString()))
+                        .build()
+                );
+                responseObserver.onCompleted();
+            } else {
+                responseObserver.onError(new Exception("Document does not exist"));
+                System.out.println("Document not exists");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }
