@@ -8,7 +8,7 @@ package cn2425tf; // package do proto
 service cn2425tf {
     rpc uploadImage(stream ImageBlock) returns (RequestInformation);
     rpc obtainImageInformation(RequestInformation) returns (ImageInformation);
-    rpc retrieveImageMapLocation(RequestInformation) returns (MapImage);
+    rpc retrieveImageMapLocation(RequestInformation) returns (stream ImageBlock);
 }
 message ProtoVoid { }
 
@@ -29,6 +29,4 @@ message ImageInformation{
     double longitude = 3;
     double score = 4;
 }
-message MapImage{
-    string mapImageLink = 1;
-}
+
