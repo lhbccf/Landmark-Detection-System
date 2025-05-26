@@ -2,6 +2,7 @@ package server;
 
 import com.google.api.core.ApiFuture;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.WriteChannel;
 import com.google.cloud.firestore.*;
 import com.google.cloud.pubsub.v1.Publisher;
 import com.google.cloud.storage.*;
@@ -56,11 +57,10 @@ public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
     public StreamObserver<ImageBlock> uploadImage(StreamObserver<RequestInformation> responseObserver) {
         StorageOptions storageOptions = StorageOptions.getDefaultInstance();
         Storage storage = storageOptions.getService();
-        ByteArrayOutputStream bytesReceived = new ByteArrayOutputStream();
         final String[] imageType = {""};
         final String[] imageName = {""};
         final boolean[] isFirst = {false};
-
+        final WriteChannel[] writer = {null};
 
         return new StreamObserver<ImageBlock>() {
             @Override
@@ -69,61 +69,64 @@ public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
                     imageType[0] = value.getImageType();
                     imageName[0] = value.getImageName();
                     isFirst[0] = true;
+
+                    BlobId blobId = BlobId.of("cn2425tf_g06", imageName[0]);
+                    BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
+                            .setContentType(value.getImageType())
+                            .build();
+
+                    writer[0] = storage.writer(blobInfo);
                 }
-                bytesReceived.writeBytes(value.getDataBlock().toByteArray());
+                try {
+                    writer[0].write(ByteBuffer.wrap(value.getDataBlock().toByteArray()));
+                } catch (IOException e) {
+                    responseObserver.onError(e);
+                }
+
             }
 
             @Override
             public void onError(Throwable t) {
-
+                responseObserver.onError(t);
             }
 
             @Override
             public void onCompleted() {
-                bytesReceived.toByteArray();
-                BlobId blobId = BlobId.of("cn2425tf_g06", imageName[0]);
-                Blob blob = storage.get(blobId);
                 int blobHashCode = 0;
-                if (blob == null) {
-                    try {
-                        BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
-                                .setContentType(imageType[0])
-                                .build();
-                        blob = storage.create(blobInfo, bytesReceived.toByteArray());
-                        blobHashCode = blob.asBlobInfo().getBlobId().toString().hashCode();
+                try {
+                    writer[0].close();
 
-                        RequestInformation response = RequestInformation.newBuilder()
-                                .setRequestId(blobHashCode)
-                                .build();
+                    BlobId blobId = BlobId.of("cn2425tf_g06", imageName[0]);
+                    Blob blob = storage.get(blobId);
+                    blobHashCode = blob.asBlobInfo().getBlobId().toString().hashCode();
 
-                        responseObserver.onNext(response);
-                        responseObserver.onCompleted();
+                    RequestInformation response = RequestInformation.newBuilder()
+                            .setRequestId(blobHashCode)
+                            .build();
 
-                        String pubSubMsg = "Message for Request: " + blobHashCode;
+                    responseObserver.onNext(response);
+                    responseObserver.onCompleted();
 
-                        TopicName topicName = TopicName.ofProjectTopicName(PROJECT_ID, TOPIC_NAME);
-                        Publisher publisher = Publisher.newBuilder(topicName).build();
-                        ByteString msgData = ByteString.copyFromUtf8(pubSubMsg);
-                        PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
-                                .setData(msgData)
-                                .putAttributes("request_id", String.valueOf(blobHashCode))
-                                .putAttributes("bucket_id", "cn2425tf_g06")
-                                .putAttributes("blob_id", blobInfo.getName())
-                                .build();
-                        ApiFuture<String> future = publisher.publish(pubsubMessage);
-                        String msgID = future.get();
-                        System.out.println("Message Published with ID =" + msgID);
-                        publisher.shutdown();
+                    String pubSubMsg = "Message for Request: " + blobHashCode;
 
+                    TopicName topicName = TopicName.ofProjectTopicName(PROJECT_ID, TOPIC_NAME);
+                    Publisher publisher = Publisher.newBuilder(topicName).build();
+                    ByteString msgData = ByteString.copyFromUtf8(pubSubMsg);
+                    PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
+                            .setData(msgData)
+                            .putAttributes("request_id", String.valueOf(blobHashCode))
+                            .putAttributes("bucket_id", "cn2425tf_g06")
+                            .putAttributes("blob_id", blob.asBlobInfo().getName())
+                            .build();
+                    ApiFuture<String> future = publisher.publish(pubsubMessage);
+                    String msgID = future.get();
+                    System.out.println("Message Published with ID =" + msgID);
+                    publisher.shutdown();
 
-                    } catch (Exception e) {
-                        System.out.println("File not found");
-                        responseObserver.onError(e);
-                    }
-                } else {
-                    System.out.println("Blob name already exists");
+                } catch (Exception e) {
+                    responseObserver.onError(e);
+                    throw new RuntimeException(e);
                 }
-
             }
         };
     }
