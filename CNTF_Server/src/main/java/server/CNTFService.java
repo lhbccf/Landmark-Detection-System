@@ -10,11 +10,15 @@ import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
 import com.google.pubsub.v1.TopicName;
 import io.grpc.stub.StreamObserver;
-import model.Location;
+import model.LandmarksInfo;
 import servicestubs.*;
 
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 
 public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
     static String PROJECT_ID = "cn2425-t4-g06";
@@ -23,7 +27,10 @@ public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
     static Firestore db;
     static String currentDatabase = "cn2425-t4-g06";
     static String currentCollection = "landmarks-info";
-    ConcurrentHashMap<Integer, Location> requestMap = new ConcurrentHashMap<>();
+
+    private static final int ZOOM = 15;
+    private static final String SIZE = "600x300";
+    private static final String API_KEY = "AIzaSyCJrHYpWqYas5DdeaWu81isLBK9hHlt7J8"; // Substitua pela sua chave
 
     public CNTFService(int svcPort) throws IOException {
         init(null, currentDatabase, currentCollection);
@@ -46,7 +53,7 @@ public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
     }
 
     @Override
-    public StreamObserver<ImageBlock> uploadImage(StreamObserver<RequestInformation> responseObserver){
+    public StreamObserver<ImageBlock> uploadImage(StreamObserver<RequestInformation> responseObserver) {
         StorageOptions storageOptions = StorageOptions.getDefaultInstance();
         Storage storage = storageOptions.getService();
         ByteArrayOutputStream bytesReceived = new ByteArrayOutputStream();
@@ -58,7 +65,7 @@ public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
         return new StreamObserver<ImageBlock>() {
             @Override
             public void onNext(ImageBlock value) {
-                if(!isFirst[0]) {
+                if (!isFirst[0]) {
                     imageType[0] = value.getImageType();
                     imageName[0] = value.getImageName();
                     isFirst[0] = true;
@@ -109,9 +116,7 @@ public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
                         publisher.shutdown();
 
 
-
-
-                    } catch(Exception e){
+                    } catch (Exception e) {
                         System.out.println("File not found");
                         responseObserver.onError(e);
                     }
@@ -125,15 +130,12 @@ public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
 
     @Override
     public void obtainImageInformation(RequestInformation requestId, StreamObserver<ImageInformation> responseObserver) {
-        Location location = null;
         try {
             DocumentReference docRef = db.collection(currentCollection).document(String.valueOf(requestId.getRequestId()));
             ApiFuture<DocumentSnapshot> future = docRef.get();
             DocumentSnapshot document = future.get();
             if (document.exists()) {
                 System.out.println(document.getData().toString());
-                location = document.toObject(Location.class);
-                requestMap.put(requestId.getRequestId(), location);
                 responseObserver.onNext(ImageInformation.newBuilder()
                         .setDescription(document.get("description").toString())
                         .setLatitude(Double.parseDouble(document.get("latitude").toString()))
@@ -151,4 +153,59 @@ public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
         }
     }
 
+    @Override
+    public void retrieveImageMapLocation(RequestInformation requestId, StreamObserver<ImageBlock> responseObserver) {
+        try {
+            // Buscar as coordenadas no Firestore
+            DocumentReference docRef = db.collection(currentCollection).document(String.valueOf(requestId.getRequestId()));
+            ApiFuture<DocumentSnapshot> future = docRef.get();
+            DocumentSnapshot document = future.get();
+
+            if (document.exists()) {
+                // Converter document para LandmarksInfo
+                LandmarksInfo landmarkInfo = document.toObject(LandmarksInfo.class);
+
+                getStaticMapImageData(landmarkInfo, API_KEY, responseObserver);
+
+                responseObserver.onCompleted();
+                System.out.println("Map image sent successfully for request: " + requestId.getRequestId());
+            } else {
+                responseObserver.onError(new Exception("Failed to download map image"));
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    // Método adaptado do teu código original para retornar bytes em vez de salvar
+    private static void getStaticMapImageData(LandmarksInfo landmarkInfo, String apiKey, StreamObserver<ImageBlock> observer) {
+        String mapUrl = "https://maps.googleapis.com/maps/api/staticmap?"
+                + "center=" + landmarkInfo.latitude + "," + landmarkInfo.longitude
+                + "&zoom=" + ZOOM
+                + "&size=" + SIZE
+                + "&key=" + apiKey;
+        System.out.println(mapUrl);
+
+        try {
+            URL url = new URL(mapUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            InputStream in = conn.getInputStream();
+            BufferedInputStream bufIn = new BufferedInputStream(in);
+
+            byte[] buffer = new byte[8 * 1024];
+            int bytesRead = 0;
+            while ((bytesRead = bufIn.read(buffer)) != -1) {
+                ImageBlock imageBlock = ImageBlock.newBuilder()
+                        .setImageName(landmarkInfo.description)
+                        .setDataBlock(ByteString.copyFrom(buffer, 0, bytesRead))
+                        .setImageType("image/png")
+                        .build();
+
+                observer.onNext(imageBlock);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
