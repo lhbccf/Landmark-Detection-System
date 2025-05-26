@@ -8,9 +8,10 @@ import static trabfinal.LandmarkDetector.init;
 
 public class LandmarkWorker {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         String projectId = "cn2425-t4-g06";
         String subscriptionId = "cn2425tf_t4_g6_topic-sub";
+        init("cn2425-t4-g06-8d582a570f0f.json","cn2425-t4-g06","landmarks-info");
         ProjectSubscriptionName subscriptionName = ProjectSubscriptionName.of(projectId, subscriptionId);
 
         Subscriber subscriber = Subscriber.newBuilder(subscriptionName, new MessageReceiver() {
@@ -21,17 +22,17 @@ public class LandmarkWorker {
                 String requestId = message.getAttributesOrDefault("request_id", null);
 
                 if (bucket == null || blob == null) {
+                    //TODO: retornar mensagem de erros
                     consumer.ack();
+
                     return;
                 }
 
                 System.out.println("Mensagem recebida: bucket=" + bucket + ", blob=" + blob + ", requestId=" + requestId);
-
                 String gsPath = "gs://" + bucket + "/" + blob;
 
                 try {
-                    //init("cn2425-t4-g06-8d582a570f0f.json","cn2425-t4-g06","landmarks-info");
-                    LandmarkDetector.detectLandmarksGcs(gsPath, args[0], requestId);
+                    LandmarkDetector.detectLandmarksSaveFirestore(gsPath, requestId);
                 } catch (IOException e) {
                     System.err.println("Erro ao processar imagem: " + e.getMessage());
                 } catch (Exception e) {
@@ -43,11 +44,6 @@ public class LandmarkWorker {
         }).build();
 
         subscriber.startAsync().awaitRunning();
-
-        try {
-            Thread.sleep(Long.MAX_VALUE);
-        } catch (InterruptedException e) {
-            System.err.println("Worker interrompido");
-        }
+        subscriber.awaitTerminated();
     }
 }

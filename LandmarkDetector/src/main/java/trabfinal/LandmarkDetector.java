@@ -38,7 +38,6 @@ public class LandmarkDetector {
         }
 
         init("cn2425-t4-g06-8d582a570f0f.json","cn2425-t4-g06","landmarks-info");
-
         detectAllLandmarksGcs(args[0]);
     }
 
@@ -71,6 +70,51 @@ public class LandmarkDetector {
         ApiFuture<WriteResult> resultFut = docRef.set(info);
         WriteResult result = resultFut.get();
         System.out.println("Update time : " + result.getUpdateTime());
+    }
+
+    public  static void detectLandmarksSaveFirestore (String blobGsPath, String requestId) throws IOException {
+        List<AnnotateImageRequest> requests = new ArrayList<>();
+
+        ImageSource imgSource = ImageSource.newBuilder().setGcsImageUri(blobGsPath).build();
+        Image img = Image.newBuilder().setSource(imgSource).build();
+        Feature feat = Feature.newBuilder().setType(Feature.Type.LANDMARK_DETECTION).build();
+        AnnotateImageRequest request = AnnotateImageRequest.newBuilder().addFeatures(feat).setImage(img).build();
+        requests.add(request);
+
+        try (ImageAnnotatorClient client = ImageAnnotatorClient.create()) {
+            BatchAnnotateImagesResponse response = client.batchAnnotateImages(requests);
+            List<AnnotateImageResponse> responses = response.getResponsesList();
+
+            for (AnnotateImageResponse res : responses) {
+                if (res.hasError()) {
+                    System.out.format("Error: %s%n", res.getError().getMessage());
+                    return;
+                }
+
+                System.out.println("Landmarks list size: " + res.getLandmarkAnnotationsList().size());
+                for (EntityAnnotation annotation : res.getLandmarkAnnotationsList()) {
+                    LocationInfo info = annotation.getLocationsList().listIterator().next();
+
+                    LandmarksInfo landmarkInfo = new LandmarksInfo();
+                    landmarkInfo.description = annotation.getDescription();
+                    landmarkInfo.score = annotation.getScore();
+                    landmarkInfo.latitude = info.getLatLng().getLatitude();
+                    landmarkInfo.longitude = info.getLatLng().getLongitude();
+
+                    try {
+                        createNewDocFirestore(landmarkInfo, requestId);
+                    } catch (Exception e) {
+                        System.err.println("Error saving to Firestore: " + e.getMessage());
+
+                    }
+
+                    System.out.format("Landmark: %s(%f)%n %s%n",
+                            annotation.getDescription(),
+                            annotation.getScore(),
+                            info.getLatLng());
+                }
+            }
+        }
     }
 
     // Detects landmarks in the specified remote image on Google Cloud Storage.
