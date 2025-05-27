@@ -8,6 +8,10 @@ import io.grpc.stub.StreamObserver;
 import servicestubs.*;
 
 import java.io.*;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,9 +28,16 @@ public class CN_Client {
 
     public static void main(String[] args) {
         try {
-            if (args.length == 2) {
-                svcIP = args[0]; svcPort = Integer.parseInt(args[1]);
+            if (args.length == 2)
+                svcPort = Integer.parseInt(args[0]);
+
+            String ip = getIP();
+            while(ip == null) {
+                Thread.sleep(2000);
+                ip = getIP();
             }
+
+            svcIP = ip;
             System.out.println("connect to " + svcIP + ":" + svcPort);
             channel = ManagedChannelBuilder.forAddress(svcIP, svcPort)
                     // Channels are secure by default (via SSL/TLS).
@@ -64,6 +75,17 @@ public class CN_Client {
         } catch (Exception ex) {
             System.out.println("Unhandled exception");
             ex.printStackTrace();
+        }
+    }
+
+    public static String getIP() {
+        List<String> lookups = getInstanceIp();
+        int size = lookups.size();
+        if (size == 0) {
+            return null;
+        } else {
+            int randomIdx = new Random().nextInt(size);
+            return lookups.get(randomIdx);
         }
     }
 
@@ -202,6 +224,32 @@ public class CN_Client {
             System.out.println("Invalid request ID format");
         } catch (Exception e){
             System.out.println("Error retrieving map image: " + e.getMessage());
+        }
+    }
+
+    public static List<String> getInstanceIp() {
+        try {
+            String instanceGroup = ""; //TODO
+            String cfURL = "URL" + "instance-group=" + instanceGroup + "&&" + "zone=" + "europe-west1-b"; //TODO COLOCAR O URL DA CLOUD FUNCTION
+            HttpClient client = HttpClient.newBuilder().build();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(cfURL))
+                    .GET()
+                    .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                String result = response.body();
+                if (result.isEmpty()) {
+                    return new ArrayList<>();
+                } else {
+                    return List.of(result.split(";"));
+                }
+            } else {
+                System.out.println("error with: " + response.statusCode());
+                return null;
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
