@@ -10,9 +10,6 @@ service cn2425tf {
     rpc obtainImageInformation(RequestInformation) returns (ImageInformation);
     rpc retrieveImageMapLocation(RequestInformation) returns (stream ImageBlock);
 }
-message ProtoVoid { }
-
-message TextMessage {string txt = 1;}
 
 message ImageBlock{
     string imageName = 1;

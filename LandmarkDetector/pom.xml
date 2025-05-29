@@ -50,7 +50,7 @@
                     </descriptors>
 					<archive>
                           <manifest>
-                              <mainClass>trabfinal.LandmarkDetector</mainClass>
+                              <mainClass>trabfinal.LandmarkWorker</mainClass>
                           </manifest>
                      </archive>
                 </configuration>

@@ -15,7 +15,7 @@ import java.util.*;
 
 public class CN_Client {
     // generic ClientApp for Calling a grpc Service
-    private static String svcIP = "0.0.0.0";//"34.175.151.247";
+    private static String svcIP = "34.175.185.117";
     private static int svcPort = 8000;
     private static ManagedChannel channel;
     private static cn2425tfGrpc.cn2425tfBlockingStub blockingStub;
