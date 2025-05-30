@@ -33,7 +33,7 @@ public class CN_Client {
                 svcPort = Integer.parseInt(args[0]);
 
             if (!connectToServer()) {
-                System.out.println("Não foi possível estabelecer conexão com nenhum servidor disponível.");
+                System.out.println("Could not establish a connection!");
                 return;
             }
 
@@ -54,14 +54,13 @@ public class CN_Client {
                         case 99:  System.exit(0);
                     }
                 } catch (Exception ex) {
-                    System.out.println("Execution call Error  !");
+                    System.out.println("Execution call Error!");
                     ex.printStackTrace();
                 }
             }
             read("prima enter to end", new Scanner(System.in));
         } catch (Exception ex) {
             System.out.println("Unhandled exception");
-            ex.printStackTrace();
         }
     }
 
@@ -110,9 +109,8 @@ public class CN_Client {
 
                 return false;
 
-            } catch (Exception e) {
-                System.out.println("Erro na seleção: " + e.getMessage());
-                scanner.nextLine();
+            } catch (Exception ex) {
+                System.out.println("Unhandled exception");
             }
         }
     }
