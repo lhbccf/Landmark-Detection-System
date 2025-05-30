@@ -8,7 +8,7 @@ public class CNTFServer {
 
     public static void main(String[] args) {
         try {
-            String apiKey = "AIzaSyCJrHYpWqYas5DdeaWu81isLBK9hHlt7J8";
+            String apiKey = "";
             int svcPort = 8000; // porta padrão
 
             if (args.length > 0) apiKey = args[0];
