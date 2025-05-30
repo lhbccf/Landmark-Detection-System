@@ -6,15 +6,19 @@ import io.grpc.ServerBuilder;
 
 public class CNTFServer {
 
-    private static int svcPort = 8000;
-
     public static void main(String[] args) {
         try {
-            if (args.length > 0) svcPort = Integer.parseInt(args[0]);
+            String apiKey = "AIzaSyCJrHYpWqYas5DdeaWu81isLBK9hHlt7J8";
+            int svcPort = 8000; // porta padrão
+
+            if (args.length > 0) apiKey = args[0];
+
+            if (args.length > 1) svcPort = Integer.parseInt(args[1]);
+
             io.grpc.Server svc = ServerBuilder.forPort(svcPort)
                     // Add one or more services.
                     // The Server can host many services in same TCP/IP port
-                    .addService(new CNTFService(svcPort))
+                    .addService(new CNTFService(apiKey, svcPort))
                     .build();
             svc.start();
             System.out.println("Server started on port " + svcPort);
