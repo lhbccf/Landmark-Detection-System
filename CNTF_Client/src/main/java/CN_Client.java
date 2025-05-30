@@ -1,5 +1,7 @@
 
 import com.google.cloud.storage.*;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -8,6 +10,7 @@ import io.grpc.stub.StreamObserver;
 import servicestubs.*;
 
 import java.io.*;
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -18,37 +21,28 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class CN_Client {
-    // generic ClientApp for Calling a grpc Service
-    private static String svcIP = "0.0.0.0";//"34.175.151.247";
+    private static String svcIP = "0.0.0.0";
     private static int svcPort = 8000;
     private static ManagedChannel channel;
     private static cn2425tfGrpc.cn2425tfBlockingStub blockingStub;
     private static cn2425tfGrpc.cn2425tfStub noBlockStub;
-
 
     public static void main(String[] args) {
         try {
             if (args.length == 2)
                 svcPort = Integer.parseInt(args[0]);
 
-            String ip = getIP();
-            while(ip == null) {
-                Thread.sleep(2000);
-                ip = getIP();
+            if (!connectToServer()) {
+                System.out.println("Não foi possível estabelecer conexão com nenhum servidor disponível.");
+                return;
             }
 
-            svcIP = ip;
-            System.out.println("connect to " + svcIP + ":" + svcPort);
-            channel = ManagedChannelBuilder.forAddress(svcIP, svcPort)
-                    // Channels are secure by default (via SSL/TLS).
-                    // For the example we disable TLS to avoid
-                    // needing certificates.
-                    .usePlaintext()
-                    .build();
-            blockingStub = cn2425tfGrpc.newBlockingStub(channel);
-            noBlockStub = cn2425tfGrpc.newStub(channel);
-
-            // Call service operations for example ping server
+//            System.out.println("connect to " + svcIP + ":" + svcPort);
+//            channel = ManagedChannelBuilder.forAddress(svcIP, svcPort)
+//                    .usePlaintext()
+//                    .build();
+//            blockingStub = cn2425tfGrpc.newBlockingStub(channel);
+//            noBlockStub = cn2425tfGrpc.newStub(channel);
 
             boolean end = false;
             while (!end) {
@@ -78,14 +72,105 @@ public class CN_Client {
         }
     }
 
-    public static String getIP() {
-        List<String> lookups = getInstanceIp();
-        int size = lookups.size();
-        if (size == 0) {
-            return null;
-        } else {
-            int randomIdx = new Random().nextInt(size);
-            return lookups.get(randomIdx);
+    private static boolean connectToServer() {
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            System.out.println();
+            System.out.println("    MENU");
+            System.out.println("1 - Select IP from the list of available instances");
+            System.out.println("2 - Select a random IP");
+            System.out.println();
+            System.out.println("Choose an Option?");
+
+            try {
+                int choice = scanner.nextInt();
+                List<String> availableIPs = null;
+
+                switch (choice) {
+                    case 1:
+                        availableIPs = getInstanceIp();
+                        if (availableIPs == null || availableIPs.isEmpty()) {
+                            System.out.println("Could not retrieve IP list or the list is empty.");
+                            continue;
+                        }
+                        svcIP = selectIPFromList(availableIPs, scanner);
+                        break;
+
+                    case 2:
+                        availableIPs = getInstanceIp();
+                        if (availableIPs == null || availableIPs.isEmpty()) {
+                            System.out.println("Could not retrieve IP list or the list is empty.");
+                            continue;
+                        }
+                        svcIP = selectRandomIP(availableIPs);
+                        break;
+
+                    default:
+                        System.out.println("Invalid option!");
+                        continue;
+                }
+
+                if (establishConnection(svcIP)) {
+                    return true;
+                }
+
+                return false;
+
+            } catch (Exception e) {
+                System.out.println("Erro na seleção: " + e.getMessage());
+                scanner.nextLine();
+            }
+        }
+    }
+
+    private static String selectIPFromList(List<String> availableIPs, Scanner scanner) {
+        System.out.println();
+
+        for (int i = 0; i < availableIPs.size(); i++) {
+            System.out.println((i + 1) + " - " + availableIPs.get(i));
+        }
+
+        while (true) {
+            System.out.println();
+            System.out.println("Select the IP: ");
+            try {
+                int selection = scanner.nextInt();
+                if (selection >= 1 && selection <= availableIPs.size()) {
+                    return availableIPs.get(selection - 1);
+                } else {
+                    System.out.println("Invalid selection!");
+                }
+            } catch (Exception e) {
+                System.out.println("Invalid input!");
+                scanner.nextLine();
+            }
+        }
+    }
+
+    private static String selectRandomIP(List<String> availableIPs) {
+        Random random = new Random();
+        String selectedIP = availableIPs.get(random.nextInt(availableIPs.size()));
+        System.out.println("Selected IP: " + selectedIP);
+        return selectedIP;
+    }
+
+    private static boolean establishConnection(String ip) {
+        try {
+            System.out.println("Conectando a " + ip + ":" + svcPort);
+
+            channel = ManagedChannelBuilder.forAddress(ip, svcPort)
+                    .usePlaintext()
+                    .build();
+
+            blockingStub = cn2425tfGrpc.newBlockingStub(channel);
+            noBlockStub = cn2425tfGrpc.newStub(channel);
+
+            return true;
+
+        } catch (Exception e) {
+            System.out.println("Erro ao estabelecer conexão: " + e.getMessage());
+            return false;
         }
     }
 
@@ -105,15 +190,17 @@ public class CN_Client {
         Path uploadPath = Paths.get(imagePath);
 
         StreamObserver<ImageBlock> streamBlocks = noBlockStub.uploadImage(
-                new StreamObserver<RequestInformation>() {
+                new StreamObserver<>() {
                     @Override
                     public void onNext(RequestInformation value) {
                         System.out.println("\nRequest Id: " + value.getRequestId());
                     }
+
                     @Override
                     public void onError(Throwable t) {
                         System.out.println("Error on upload");
                     }
+
                     @Override
                     public void onCompleted() {
                         System.out.println("Image sent successfully");
@@ -121,7 +208,6 @@ public class CN_Client {
                 }
         );
 
-        // When Blob size is big or unknown use the blob's channel reader.
         try (FileInputStream inStream = new FileInputStream(uploadPath.toFile())){
             byte[] buffer = new byte[8192];
             while(inStream.read(buffer) > 0){
@@ -228,27 +314,40 @@ public class CN_Client {
     }
 
     public static List<String> getInstanceIp() {
+        List<String> ipList = new ArrayList<>();
+
         try {
-            String instanceGroup = ""; //TODO
-            String cfURL = "URL" + "instance-group=" + instanceGroup + "&&" + "zone=" + "europe-west1-b"; //TODO COLOCAR O URL DA CLOUD FUNCTION
+            String projectID = "cn2425-t4-g06";
+            String zone = "europe-southwest1-a";
+            String instanceGroup = "group-grpc-server";
+
+            String cfURL = "https://europe-west1-cn2425-t4-g06.cloudfunctions.net/funcHttpIPlookup?" +
+                            "projectID=" + projectID +
+                            "&zone=" + zone +
+                            "&instanceGroup=" + instanceGroup;
+
             HttpClient client = HttpClient.newBuilder().build();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(cfURL))
                     .GET()
                     .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
             if (response.statusCode() == 200) {
                 String result = response.body();
+
                 if (result.isEmpty()) {
                     return new ArrayList<>();
                 } else {
-                    return List.of(result.split(";"));
+                    Type listType = new TypeToken<List<String>>() {}.getType();
+                    return new Gson().fromJson(result, listType);
                 }
             } else {
-                System.out.println("error with: " + response.statusCode());
+                System.out.println("Error with: " + response.statusCode());
                 return null;
             }
         } catch (IOException | InterruptedException e) {
+            System.out.println("Error while retrieving IP list: " + e.getMessage());
             throw new RuntimeException(e);
         }
     }
