@@ -24,7 +24,6 @@ import java.util.concurrent.ExecutionException;
 public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
     static String PROJECT_ID = "cn2425-t4-g06";
     static String TOPIC_NAME = "cn2425tf_t4_g6_topic";
-    static String SUBSCRIPTION_NAME = "cn2425tf_t4_g6_topic-sub";
     static Firestore db;
     static String currentDatabase = "cn2425-t4-g06";
     static String currentCollection = "landmarks-info";

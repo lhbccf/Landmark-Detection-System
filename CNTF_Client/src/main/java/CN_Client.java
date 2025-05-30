@@ -172,11 +172,16 @@ public class CN_Client {
 
         System.out.print("Enter image path to upload: ");
         String imagePath = scanner.nextLine().trim();
-        String imageName = imagePath;
+        String[] imagePathSplit = imagePath.split("/");
+        String imageName = imagePathSplit[imagePathSplit.length - 1];
 
-        if(!imagePath.contains("./")){
+        if(imagePath.startsWith("/")){
+            imagePath = "." + imagePath;
+        } else if(!imagePath.startsWith("./")){
             imagePath = "./" + imagePath;
         }
+        System.out.println("Path: " + imagePath + "\nName: " + imageName);
+
 
         System.out.println("\nUploading image...");
 
