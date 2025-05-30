@@ -1,0 +1,1 @@
+gcloud functions deploy funcHttpIPlookup --project=cn2425-t4-g06 --allow-unauthenticated --entry-point=trabfinal.CNTFIPLookup --runtime=java21 --trigger-http --region=europe-west1 --source=target/deployment --service-account=tf-compute@cn2425-t4-g06.iam.gserviceaccount.com
