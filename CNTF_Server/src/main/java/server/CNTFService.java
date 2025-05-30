@@ -30,9 +30,10 @@ public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
 
     private static final int ZOOM = 15;
     private static final String SIZE = "600x300";
-    private static final String API_KEY = "AIzaSyCJrHYpWqYas5DdeaWu81isLBK9hHlt7J8"; // Substitua pela sua chave
+    private static String API_KEY; // API MAPS KEY
 
-    public CNTFService(int svcPort) throws IOException {
+    public CNTFService(String apiKey, int svcPort) throws IOException {
+        API_KEY = apiKey;
         init(null, currentDatabase, currentCollection);
         System.out.println("Service is available on port:" + svcPort);
     }
