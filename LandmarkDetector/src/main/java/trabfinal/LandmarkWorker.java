@@ -11,7 +11,7 @@ public class LandmarkWorker {
     public static void main(String[] args) throws Exception {
         String projectId = "cn2425-t4-g06";
         String subscriptionId = "cn2425tf_t4_g6_topic-sub";
-        init("cn2425-t4-g06-78a13e868f9f.json","cn2425-t4-g06","landmarks-info");
+        init(null,"cn2425-t4-g06","landmarks-info");
         ProjectSubscriptionName subscriptionName = ProjectSubscriptionName.of(projectId, subscriptionId);
 
         Subscriber subscriber = Subscriber.newBuilder(subscriptionName, new MessageReceiver() {
@@ -23,6 +23,18 @@ public class LandmarkWorker {
 
                 System.out.println("Mensagem recebida: bucket=" + bucket + ", blob=" + blob + ", requestId=" + requestId);
                 String gsPath = "gs://" + bucket + "/" + blob;
+
+                LandmarksInfo landmarkInfo = new LandmarksInfo();
+                landmarkInfo.description = blob;
+                landmarkInfo.score = 0;
+                landmarkInfo.latitude = 0;
+                landmarkInfo.longitude = 0;
+
+                try {
+                    LandmarkDetector.createNewDocFirestore(landmarkInfo, requestId);
+                } catch (Exception e) {
+                    System.err.println("Error saving to Firestore: " + e.getMessage());
+                }
 
                 try {
                     LandmarkDetector.detectLandmarksSaveFirestore(gsPath, requestId);

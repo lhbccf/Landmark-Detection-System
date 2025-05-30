@@ -21,7 +21,7 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class CN_Client {
-    private static String svcIP = "0.0.0.0";
+    private static String svcIP = "34.175.240.184";
     private static int svcPort = 8000;
     private static ManagedChannel channel;
     private static cn2425tfGrpc.cn2425tfBlockingStub blockingStub;
@@ -97,7 +97,9 @@ public class CN_Client {
                         }
                         svcIP = selectRandomIP(availableIPs);
                         break;
-
+                    case 3:
+                        System.out.println("Using default IP");
+                        break;
                     default:
                         System.out.println("Invalid option!");
                         continue;
@@ -286,7 +288,7 @@ public class CN_Client {
 
                         @Override
                         public void onError(Throwable t) {
-                            System.out.println("Erro");
+                            System.out.println("\nImage could not be produced\n");
                         }
 
                         @Override
@@ -295,7 +297,7 @@ public class CN_Client {
                                 os[0].close();
                                 System.out.println("Download completed!");
                             } catch (Exception e) {
-                                System.out.println("Erro");
+                                System.out.println("Error");
                             }
                         }
 

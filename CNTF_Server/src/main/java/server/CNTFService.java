@@ -167,11 +167,16 @@ public class CNTFService extends cn2425tfGrpc.cn2425tfImplBase {
             if (document.exists()) {
                 // Converter document para LandmarksInfo
                 LandmarksInfo landmarkInfo = document.toObject(LandmarksInfo.class);
+                if(landmarkInfo != null && landmarkInfo.score != 0) {
+                    getStaticMapImageData(landmarkInfo, API_KEY, responseObserver);
+                    System.out.println("Map image sent successfully for request: " + requestId.getRequestId());
+                    responseObserver.onCompleted();
+                }
+                else {
+                    System.out.println("Image doesn't relate to a landmark");
+                    responseObserver.onError(new RuntimeException("Image doesn't relate to a landmark"));
+                }
 
-                getStaticMapImageData(landmarkInfo, API_KEY, responseObserver);
-
-                responseObserver.onCompleted();
-                System.out.println("Map image sent successfully for request: " + requestId.getRequestId());
             } else {
                 responseObserver.onError(new Exception("Failed to download map image"));
             }
