@@ -37,13 +37,6 @@ public class CN_Client {
                 return;
             }
 
-//            System.out.println("connect to " + svcIP + ":" + svcPort);
-//            channel = ManagedChannelBuilder.forAddress(svcIP, svcPort)
-//                    .usePlaintext()
-//                    .build();
-//            blockingStub = cn2425tfGrpc.newBlockingStub(channel);
-//            noBlockStub = cn2425tfGrpc.newStub(channel);
-
             boolean end = false;
             while (!end) {
                 try {

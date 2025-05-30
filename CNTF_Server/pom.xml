@@ -50,7 +50,7 @@
                     </descriptors>
                     <archive>
                         <manifest>
-                            <mainClass>CNTF_Server.ForumServer</mainClass>
+                            <mainClass>server.CNTFServer</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
