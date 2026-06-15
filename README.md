@@ -1,4 +1,4 @@
-# CN2425TF_T4_G06 — Landmark Detection System
+# Landmark Detection System
 
 A distributed image analysis system built on gRPC and Google Cloud Platform. Clients stream images to the server, which stores them in Cloud Storage and triggers asynchronous landmark detection via Cloud Vision API. Results are persisted in Firestore and returned to the client along with a map image generated from the Google Maps Static API.
 
